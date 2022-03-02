@@ -1,0 +1,36 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Trading (--cache)",
+            "type": "python",
+            "request": "launch",
+            "program": "Program.py",
+            "console": "integratedTerminal",
+            "args": [ "--cache" ],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "name": "Trading",
+            "type": "python",
+            "request": "launch",
+            "program": "Program.py",
+            "console": "integratedTerminal",
+            "args": [ ],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "name": "Trading -h",
+            "type": "python",
+            "request": "launch",
+            "program": "Program.py",
+            "console": "integratedTerminal",
+            "args": [ "--host", "vps183484.vps.ovh.ca", "--port", "4000" ],
+            "cwd": "${workspaceFolder}"
+        }
+
+    ]
+}
