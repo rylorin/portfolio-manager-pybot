@@ -226,10 +226,13 @@ class Trader(wrapper.EWrapper, EClient):
             """,
             (account, ))
         r = c.fetchone()
-        getBenchmarkAmountInBase = float(r[0])
+        if r:
+            result = float(r[0])
+        else:
+            result = 0
         c.close()
-        # print('getBenchmarkAmountInBase:', getBenchmarkAmountInBase)
-        return getBenchmarkAmountInBase
+        # print('getBenchmarkAmountInBase:', result)
+        return result
 
     def getWheelStocksToProcess(self):
         self.getDbConnection()
