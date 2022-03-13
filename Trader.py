@@ -226,7 +226,7 @@ class Trader(wrapper.EWrapper, EClient):
             """,
             (account, ))
         r = c.fetchone()
-        if r:
+        if r[0]:
             result = float(r[0])
         else:
             result = 0
@@ -288,7 +288,7 @@ class Trader(wrapper.EWrapper, EClient):
             , t)
         r = c.fetchone()
         if r:
-            getNakedPutRatio =float(r[0])
+            getNakedPutRatio = float(r[0])
         else:
             getNakedPutRatio = 0
         c.close()
