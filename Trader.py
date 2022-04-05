@@ -136,7 +136,7 @@ class Trader(wrapper.EWrapper, EClient):
         c.execute(
             """
             UPDATE contract
-              SET price = NULL, ask = NULL, bid = NULL, updated = NULL, ask_date = NULL, bid_date = NULL
+              SET price = NULL, ask = NULL, bid = NULL, updatedAt = NULL, ask_date = NULL, bid_date = NULL
               WHERE contract.secType = 'OPT'
             """)
         rowcount = c.rowcount
@@ -1260,7 +1260,7 @@ class Trader(wrapper.EWrapper, EClient):
             c = self.db.cursor()
             t = (round(price, 2), reqId, )
             if (tickType == TickTypeEnum.LAST) or (tickType == TickTypeEnum.DELAYED_LAST):   # 4
-                c.execute('UPDATE contract SET price = ?, updated = datetime(\'now\') WHERE api_req_id = ?', t)
+                c.execute('UPDATE contract SET price = ?, updatedAt = datetime(\'now\') WHERE api_req_id = ?', t)
                 if c.rowcount != 1:
                     print("TickPrice. TickerId:", reqId, "tickType:", tickType, "Price:", price, "CanAutoExecute:", attrib.canAutoExecute, "PastLimit:", attrib.pastLimit, "PreOpen:", attrib.preOpen)
                     print('failed to store price:', c.rowcount, 'row(s) affected')
@@ -1315,7 +1315,7 @@ class Trader(wrapper.EWrapper, EClient):
             elif tickType == TickTypeEnum.ASK_OPTION_COMPUTATION:   # 11
                 c.execute('UPDATE contract SET ask = ?, ask_date = NULL WHERE api_req_id = ?', t)
             elif tickType == TickTypeEnum.LAST_OPTION_COMPUTATION:  # 12
-                c.execute('UPDATE contract SET price = ?, updated = NULL WHERE api_req_id = ?', t)
+                c.execute('UPDATE contract SET price = ?, updatedAt = NULL WHERE api_req_id = ?', t)
                 if c.rowcount != 1:
                     print("TickOptionComputation. TickerId:", reqId, "TickType:", tickType, "TickAttrib:", tickAttrib, "ImpliedVolatility:", impliedVol, "Delta:", delta, "OptionPrice:", optPrice, "pvDividend:", pvDividend, "Gamma: ", gamma, "Vega:", vega, "Theta:", theta, "UnderlyingPrice:", undPrice)
                     print('failed to store price:', c.rowcount, 'row(s) affected')
@@ -1384,6 +1384,11 @@ class Trader(wrapper.EWrapper, EClient):
     def openOrder(self, orderId: OrderId, contract: Contract, order: Order,
                   orderState: OrderState):
         super().openOrder(orderId, contract, order, orderState)
+        # print("OpenOrder. PermId: ", order.permId, "ClientId:", order.clientId, " OrderId:", orderId,
+        #       "Account:", order.account, "Symbol:", contract.symbol, "SecType:", contract.secType,
+        #       "Exchange:", contract.exchange, "Action:", order.action, "OrderType:", order.orderType,
+        #       "TotalQty:", order.totalQuantity, "CashQty:", order.cashQty,
+        #       "LmtPrice:", order.lmtPrice, "AuxPrice:", order.auxPrice, "Status:", orderState.status)
         self.getDbConnection()
         c = self.db.cursor()
         # Update OpenOrder table
@@ -1434,6 +1439,7 @@ class Trader(wrapper.EWrapper, EClient):
     @iswrapper
     def openOrderEnd(self):
         super().openOrderEnd()
+        print("OpenOrderEnd")
         self.ordersLoaded = True
     # ! [openorderend]
 
@@ -1444,12 +1450,17 @@ class Trader(wrapper.EWrapper, EClient):
                     whyHeld: str, mktCapPrice: float):
         super().orderStatus(orderId, status, filled, remaining,
                             avgFillPrice, permId, parentId, lastFillPrice, clientId, whyHeld, mktCapPrice)
+        # print("OrderStatus. Id:", orderId, "Status:", status, "Filled:", filled,
+        #       "Remaining:", remaining, "AvgFillPrice:", avgFillPrice,
+        #       "PermId:", permId, "ParentId:", parentId, "LastFillPrice:",
+        #       lastFillPrice, "ClientId:", clientId, "WhyHeld:",
+        #       whyHeld, "MktCapPrice:", mktCapPrice)
         # Update OpenOrder
         self.getDbConnection()
         c = self.db.cursor()
         if status == 'Submitted' or status == 'PreSubmitted':
             c.execute(
-                'UPDATE open_order SET status = ?, remaining_qty = ? WHERE perm_id = ?',
+                "UPDATE open_order SET status = ?, remaining_qty = ?, updatedAt = datetime('now') WHERE perm_id = ?",
                 (status, remaining, permId, ))
         elif status == 'Cancelled' or status == 'Filled':
             c.execute('DELETE FROM open_order WHERE perm_id = ?', (permId, ))
@@ -1698,7 +1709,7 @@ class Trader(wrapper.EWrapper, EClient):
             self.getDbConnection()
             c = self.db.cursor()
             c.execute(
-                'UPDATE contract SET price = ?, updated = datetime(\'now\') WHERE contract.con_id = ?', 
+                'UPDATE contract SET price = ?, updatedAt = datetime(\'now\') WHERE contract.con_id = ?', 
                 (marketPrice, contract.conId, ))
             c.close()
             self.db.commit()
@@ -2145,7 +2156,7 @@ class Trader(wrapper.EWrapper, EClient):
             c.execute(
                 """
                 UPDATE contract
-                SET ask = NULL, price = NULL, bid = NULL, previous_close_price = NULL, ask_date = NULL, updated = NULL, bid_date = NULL
+                SET ask = NULL, price = NULL, bid = NULL, previous_close_price = NULL, ask_date = NULL, updatedAt = NULL, bid_date = NULL
                 WHERE contract.id IN (
                     SELECT option.id
                         FROM option, contract stock
