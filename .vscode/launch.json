@@ -10,7 +10,7 @@
             "request": "launch",
             "program": "Program.py",
             "console": "integratedTerminal",
-            "args": [ "--cache" ],
+            "args": [ "--cache", "--port", "4001" ],
             "cwd": "${workspaceFolder}"
         },
         {
@@ -19,7 +19,7 @@
             "request": "launch",
             "program": "Program.py",
             "console": "integratedTerminal",
-            "args": [ ],
+            "args": [ "--port", "4001" ],
             "cwd": "${workspaceFolder}"
         },
         {
@@ -28,7 +28,7 @@
             "request": "launch",
             "program": "Program.py",
             "console": "integratedTerminal",
-            "args": [ "--host", "vps183484.vps.ovh.ca", "--port", "4000" ],
+            "args": [ "--host", "tws", "--port", "4000" ],
             "cwd": "${workspaceFolder}"
         }
 

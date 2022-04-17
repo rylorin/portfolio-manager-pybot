@@ -124,7 +124,7 @@ class Trader(wrapper.EWrapper, EClient):
         # clear currencies cash balances
         c = self.db.cursor()
         c.execute(
-            'DELETE FROM open_order WHERE account_id = (SELECT id from portfolio WHERE account = ?)',
+            'DELETE FROM open_order WHERE portfolio_id = (SELECT id from portfolio WHERE account = ?)',
             (accountName, ))
         c.close()
         self.db.commit()
@@ -496,10 +496,10 @@ class Trader(wrapper.EWrapper, EClient):
             c.execute('DELETE FROM position WHERE portfolio_id = ? AND contract_id = ?', t)
         else:
             t = (averageCost * position, position, pid, cid)
-            c.execute('UPDATE position SET cost = ?, quantity = ? WHERE portfolio_id = ? AND contract_id = ?', t)
+            c.execute("UPDATE position SET cost = ?, quantity = ?, updatedAt = datetime('now') WHERE portfolio_id = ? AND contract_id = ?", t)
             #print(c.rowcount)
             if (c.rowcount == 0):
-                c.execute("INSERT INTO position(cost, quantity, portfolio_id, contract_id, open_date) VALUES (?, ?, ?, ?, datetime('now'))", t)
+                c.execute("INSERT INTO position(cost, quantity, portfolio_id, contract_id, open_date, updatedAt) VALUES (?, ?, ?, ?, datetime('now'), datetime('now'))", t)
         c.close()
         self.db.commit()
 
@@ -717,7 +717,7 @@ class Trader(wrapper.EWrapper, EClient):
                 c.execute('INSERT INTO contract(secType, symbol, currency, con_id, name) VALUES (?, ?, ?, ?, ?)', t)
                 id = c.lastrowid
                 t = (id, stockid, contract.right, strike, datetime.datetime.strptime(contract.lastTradeDateOrContractMonth, '%Y%m%d').date(), contract.multiplier)
-                c.execute('INSERT INTO option(id, stock_id, call_or_put, strike, last_trade_date, multiplier) VALUES (?, ?, ?, ?, ?, ?)', t)
+                c.execute('INSERT INTO option(id, stock_id, call_or_put, strike, last_trade_date, multiplier, createdAt) VALUES (?, ?, ?, ?, ?, ?, datetime(\'now\'))', t)
                 c.close()
             else:
                 id = r[0]
@@ -1094,7 +1094,7 @@ class Trader(wrapper.EWrapper, EClient):
         c.execute(
             'SELECT open_order.order_id '\
             'FROM open_order, portfolio, contract ' \
-            'WHERE open_order.account_id = portfolio.id AND portfolio.account = ? ' \
+            'WHERE open_order.portfolio_id = portfolio.id AND portfolio.account = ? ' \
             ' AND open_order.contract_id = contract.id AND contract.symbol = ? AND contract.secType = ? ' \
             ' AND open_order.action_type = ?' \
             ' AND open_order.status IN (?, ?)',
@@ -1115,7 +1115,7 @@ class Trader(wrapper.EWrapper, EClient):
         c.execute(
             'SELECT SUM(remaining_qty) '\
             'FROM open_order, portfolio, contract ' \
-            'WHERE open_order.account_id = portfolio.id AND portfolio.account = ? ' \
+            'WHERE open_order.portfolio_id = portfolio.id AND portfolio.account = ? ' \
             ' AND open_order.contract_id = contract.id AND contract.con_id = ?' \
             ' AND open_order.action_type = ?' \
             ' AND open_order.status IN (?, ?)',
@@ -1143,7 +1143,7 @@ class Trader(wrapper.EWrapper, EClient):
             """
             SELECT SUM(remaining_qty)
             FROM open_order, portfolio, contract 
-            WHERE open_order.account_id = portfolio.id AND portfolio.account = ? 
+            WHERE open_order.portfolio_id = portfolio.id AND portfolio.account = ? 
              AND open_order.contract_id = contract.id AND contract.symbol = ? AND contract.secType = ? 
              AND open_order.action_type = ?
              AND open_order.status IN ('Submitted', 'PreSubmitted')
@@ -1173,7 +1173,7 @@ class Trader(wrapper.EWrapper, EClient):
             """
             SELECT SUM(open_order.remaining_qty * option.multiplier)
               FROM open_order, portfolio, option, contract
-              WHERE open_order.account_id = portfolio.id AND portfolio.account = ?
+              WHERE open_order.portfolio_id = portfolio.id AND portfolio.account = ?
                 AND open_order.contract_id = option.id AND option.call_or_put = ? AND option.stock_id = contract.id AND contract.symbol = ?
                 AND open_order.action_type = ?
                 AND open_order.status IN (?, ?)
@@ -1197,7 +1197,7 @@ class Trader(wrapper.EWrapper, EClient):
         sql = """
             SELECT SUM(open_order.remaining_qty * option.multiplier * option.strike / currency.rate)
             FROM open_order, portfolio, option, contract, currency
-            WHERE open_order.account_id = portfolio.id AND portfolio.account = ?
+            WHERE open_order.portfolio_id = portfolio.id AND portfolio.account = ?
              AND open_order.contract_id = option.id AND option.call_or_put = ? AND option.stock_id = contract.id
              AND contract.currency = currency.currency
              AND currency.base = portfolio.base_currency
@@ -1408,7 +1408,7 @@ class Trader(wrapper.EWrapper, EClient):
                     contract_id = r[0]
                     t = (portfolio_id, contract_id, order.permId, order.clientId, orderId, action, order.totalQuantity, order.cashQty, order.lmtPrice, order.auxPrice, orderState.status, order.totalQuantity, )
                     c.execute(
-                        'INSERT INTO open_order(account_id, contract_id, perm_id, client_id, order_id, action_type, total_qty, cash_qty, lmt_price, aux_price, status, remaining_qty) ' \
+                        'INSERT INTO open_order(portfolio_id, contract_id, perm_id, client_id, order_id, action_type, total_qty, cash_qty, lmt_price, aux_price, status, remaining_qty) ' \
                         'VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
                         t)  # better use permid
                 c.execute('SELECT id FROM contract WHERE con_id = ?', (contract.comboLegs[1].conId, ))
@@ -1421,14 +1421,14 @@ class Trader(wrapper.EWrapper, EClient):
                     contract_id = r[0]
                     t = (portfolio_id, contract_id, order.permId, order.clientId, orderId, action, order.totalQuantity, order.cashQty, order.lmtPrice, order.auxPrice, orderState.status, order.totalQuantity, )
                     c.execute(
-                        'INSERT INTO open_order(account_id, contract_id, perm_id, client_id, order_id, action_type, total_qty, cash_qty, lmt_price, aux_price, status, remaining_qty) ' \
+                        'INSERT INTO open_order(portfolio_id, contract_id, perm_id, client_id, order_id, action_type, total_qty, cash_qty, lmt_price, aux_price, status, remaining_qty) ' \
                         'VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', t)
             else:
                 contract_id = self.findOrCreateContract(contract)
                 if contract_id:
                     t = (portfolio_id, contract_id, order.permId, order.clientId, orderId, order.action, order.totalQuantity, order.cashQty, order.lmtPrice, order.auxPrice, orderState.status, order.totalQuantity, )
                     c.execute(
-                        'INSERT INTO open_order(account_id, contract_id, perm_id, client_id, order_id, action_type, total_qty, cash_qty, lmt_price, aux_price, status, remaining_qty) ' \
+                        'INSERT INTO open_order(portfolio_id, contract_id, perm_id, client_id, order_id, action_type, total_qty, cash_qty, lmt_price, aux_price, status, remaining_qty) ' \
                         'VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', t)
         else:
             print('order already exists', order, contract)
