@@ -714,7 +714,7 @@ class Trader(wrapper.EWrapper, EClient):
                 else:
                     strike = contract.strike
                 t = (contract.secType, '{} {} {:.1f} {}'.format(self.normalizeSymbol(contract.symbol), datetime.datetime.strptime(contract.lastTradeDateOrContractMonth, '%Y%m%d').strftime('%d%b%y').upper(), contract.strike, contract.right), contract.currency, contract.conId, name, )
-                c.execute('INSERT INTO contract(secType, symbol, currency, con_id, name) VALUES (?, ?, ?, ?, ?)', t)
+                c.execute('INSERT INTO contract(secType, symbol, currency, con_id, name, createdAt) VALUES (?, ?, ?, ?, ?, datetime(\'now\'))', t)
                 id = c.lastrowid
                 t = (id, stockid, contract.right, strike, datetime.datetime.strptime(contract.lastTradeDateOrContractMonth, '%Y%m%d').date(), contract.multiplier)
                 c.execute('INSERT INTO option(id, stock_id, call_or_put, strike, last_trade_date, multiplier, createdAt) VALUES (?, ?, ?, ?, ?, ?, datetime(\'now\'))', t)
@@ -1374,6 +1374,7 @@ class Trader(wrapper.EWrapper, EClient):
     @iswrapper
     def securityDefinitionOptionParameterEnd(self, reqId: int):
         super().securityDefinitionOptionParameterEnd(reqId)
+        print('securityDefinitionOptionParameterEnd:', len(self.wheelSymbolsExpirations), 'exp and', len(self.wheelSymbolsProcessingStrikes), 'strikes')
         self.wheelSymbolsExpirations = sorted(self.wheelSymbolsExpirations)
         self.wheelSymbolsProcessingStrikes = sorted(self.wheelSymbolsProcessingStrikes)
         self.clearRequestId(reqId)
